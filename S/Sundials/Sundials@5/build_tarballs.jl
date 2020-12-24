@@ -5,7 +5,7 @@ name = "Sundials"
 # Bash recipe for building across all platforms
 script = raw"""
 cd $WORKSPACE/srcdir/sundials*
-
+cd cmake/tpl
 # Set up CFLAGS
 if [[ "${target}" == *-mingw* ]]; then
     atomic_patch $WORKSPACE/srcdir/patches/Sundials_windows.patch
@@ -30,6 +30,7 @@ elif [[ "${target}" == powerpc64le-* ]]; then
 fi
 
 # Build
+cd $WORKSPACE/srcdir/sundials*
 mkdir build && cd build
 cmake -DCMAKE_INSTALL_PREFIX=${prefix} \
     -DCMAKE_BUILD_TYPE=Release \
