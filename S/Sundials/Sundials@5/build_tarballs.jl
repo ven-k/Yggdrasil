@@ -7,9 +7,11 @@ script = raw"""
 cd $WORKSPACE/srcdir/sundials*
 
 # Set up LAPACK
+cd cmake
 LAPACK_LIBRARIES="-lgfortran"
 if [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then
-    atomic_patch -p1 $WORKSPACE/srcdir/patches/Sundials_Fortran.patch
+    atomic_patch $WORKSPACE/srcdir/patches/Sundials_Compilers.patch
+    atomic_patch $WORKSPACE/srcdir/patches/Sundials_Fortran.patch
     LAPACK_LIBRARIES="${LAPACK_LIBRARIES} ${libdir}/libopenblas64_.${dlext}"
 else
     LAPACK_LIBRARIES="${LAPACK_LIBRARIES} ${libdir}/libopenblas.${dlext}"
@@ -22,7 +24,7 @@ elif [[ "${target}" == powerpc64le-* ]]; then
 fi
 
 # Set up CFLAGS
-cd cmake/tpl
+cd tpl
 if [[ "${target}" == *-mingw* ]]; then
     atomic_patch $WORKSPACE/srcdir/patches/Sundials_windows.patch
     # Work around https://github.com/LLNL/sundials/issues/29
