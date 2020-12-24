@@ -5,15 +5,6 @@ name = "Sundials"
 # Bash recipe for building across all platforms
 script = raw"""
 cd $WORKSPACE/srcdir/sundials*
-cd cmake/tpl
-# Set up CFLAGS
-if [[ "${target}" == *-mingw* ]]; then
-    atomic_patch $WORKSPACE/srcdir/patches/Sundials_windows.patch
-    # Work around https://github.com/LLNL/sundials/issues/29
-    export CFLAGS="${CFLAGS} -DBUILD_SUNDIALS_LIBRARY"
-elif [[ "${target}" == powerpc64le-* ]]; then
-    export CFLAGS="-Wl,-rpath-link,/opt/${target}/${target}/lib64"
-fi
 
 # Set up LAPACK
 LAPACK_LIBRARIES="-lgfortran"
@@ -23,10 +14,21 @@ if [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then
 else
     LAPACK_LIBRARIES="${LAPACK_LIBRARIES} ${libdir}/libopenblas.${dlext}"
 fi
+
 if [[ "${target}" == i686-* ]] || [[ "${target}" == x86_64-* ]]; then
     LAPACK_LIBRARIES="${LAPACK_LIBRARIES} -lquadmath"
 elif [[ "${target}" == powerpc64le-* ]]; then
     LAPACK_LIBRARIES="${LAPACK_LIBRARIES} -lgomp -ldl -lm -lpthread"
+fi
+
+# Set up CFLAGS
+cd cmake/tpl
+if [[ "${target}" == *-mingw* ]]; then
+    atomic_patch $WORKSPACE/srcdir/patches/Sundials_windows.patch
+    # Work around https://github.com/LLNL/sundials/issues/29
+    export CFLAGS="${CFLAGS} -DBUILD_SUNDIALS_LIBRARY"
+elif [[ "${target}" == powerpc64le-* ]]; then
+    export CFLAGS="-Wl,-rpath-link,/opt/${target}/${target}/lib64"
 fi
 
 # Build
