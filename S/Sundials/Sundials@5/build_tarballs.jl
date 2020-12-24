@@ -9,7 +9,7 @@ cd $WORKSPACE/srcdir/sundials*
 # Set up LAPACK
 LAPACK_LIBRARIES="-lgfortran"
 if [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then
-    atomic_patch $WORKSPACE/srcdir/patches/Sundials_Fortran.patch
+    atomic_patch -p1 $WORKSPACE/srcdir/patches/Sundials_Fortran.patch
     LAPACK_LIBRARIES="${LAPACK_LIBRARIES} ${libdir}/libopenblas64_.${dlext}"
 else
     LAPACK_LIBRARIES="${LAPACK_LIBRARIES} ${libdir}/libopenblas.${dlext}"
