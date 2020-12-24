@@ -1,28 +1,27 @@
 using BinaryBuilder
 
 name = "Sundials32"
-version = v"5.3.0"
+version = v"5.6.1"
 
 # Collection of sources required to build Sundials
 sources = [
     GitSource("https://github.com/LLNL/sundials.git",
-              "887af4374af2271db9310d31eaa9b5aeff49e829"),
+              "6ddce5d90084d8d1cbb8e12bb5a4402168325efe"),
     DirectorySource("../bundled@5"),
 ]
 
 # Bash recipe for building across all platforms
 script = raw"""
 cd $WORKSPACE/srcdir/sundials*
-
+cd cmake/tpl
 # Set up CFLAGS
 if [[ "${target}" == *-mingw* ]]; then
-    atomic_patch -p1 $WORKSPACE/srcdir/patches/Sundials_windows.patch
+    atomic_patch $WORKSPACE/srcdir/patches/Sundials_windows.patch
     # Work around https://github.com/LLNL/sundials/issues/29
     export CFLAGS="${CFLAGS} -DBUILD_SUNDIALS_LIBRARY"
 elif [[ "${target}" == powerpc64le-* ]]; then
     export CFLAGS="-Wl,-rpath-link,/opt/${target}/${target}/lib64"
 fi
-
 # Set up LAPACK
 LAPACK_LIBRARIES="-lgfortran ${libdir}/libopenblas.${dlext}"
 if [[ "${target}" == i686-* ]] || [[ "${target}" == x86_64-* ]]; then
@@ -30,35 +29,32 @@ if [[ "${target}" == i686-* ]] || [[ "${target}" == x86_64-* ]]; then
 elif [[ "${target}" == powerpc64le-* ]]; then
     LAPACK_LIBRARIES="${LAPACK_LIBRARIES} -lgomp -ldl -lm -lpthread"
 fi
-
 # Fix the SuperLU_MT library name
-atomic_patch -p1 $WORKSPACE/srcdir/patches/Sundials_SuperLU_MT.patch
-
+atomic_patch $WORKSPACE/srcdir/patches/Sundials_SuperLU_MT.patch
 # Use GCC on Apple/FreeBSD
 toolchain="$CMAKE_TARGET_TOOLCHAIN"
 if [[ "${target}" == *-apple-* ]] || [[ "${target}" == *-freebsd* ]]; then
     toolchain="${CMAKE_TARGET_TOOLCHAIN%.*}_gcc.cmake"
 fi
-
 # Set the mangling scheme manually on Apple
 if [[ "${target}" == *-apple-* ]]; then
     mangling="-DSUNDIALS_F77_FUNC_CASE=lower -DSUNDIALS_F77_FUNC_UNDERSCORES=one"
 fi
-
 # Build
+cd $WORKSPACE/srcdir/sundials*
 mkdir build && cd build
 cmake -DCMAKE_INSTALL_PREFIX=${prefix} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_TOOLCHAIN_FILE="$toolchain" \
     -DEXAMPLES_ENABLE_C=OFF \
-    -DKLU_ENABLE=ON \
+    -DENABLE_KLU=ON \
     -DKLU_INCLUDE_DIR="${includedir}" \
-    -DKLU_LIBRARY_DIR="$libdir" \
-    -DLAPACK_ENABLE=ON \
+    -DKLU_LIBRARY_DIR="${libdir}" \
+    -DENABLE_LAPACK=ON \
     -DLAPACK_LIBRARIES:STRING="${LAPACK_LIBRARIES}" \
-    -DSUPERLUMT_ENABLE=ON \
+    -DENABLE_SUPERLUMT=ON \
     -DSUPERLUMT_INCLUDE_DIR="${includedir}" \
-    -DSUPERLUMT_LIBRARY_DIR="$libdir" \
+    -DSUPERLUMT_LIBRARY_DIR="${libdir}" \
     -DSUPERLUMT_LIBRARIES="${libdir}/libopenblas.${dlext}" \
     -DSUPERLUMT_THREAD_TYPE="OpenMP" \
     -DSUNDIALS_INDEX_SIZE=32 \
@@ -67,7 +63,6 @@ cmake -DCMAKE_INSTALL_PREFIX=${prefix} \
     ..
 make -j${nproc}
 make install
-
 # Move libraries to ${libdir} on Windows
 if [[ "${target}" == *-mingw* ]]; then
     mv ${prefix}/lib/libsundials_*.${dlext} "${libdir}"
